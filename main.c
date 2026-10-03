@@ -1,29 +1,38 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #define INVENTORY_SIZE 10
+
 int main() {
+    // === НАСТРОЙКА И ИНИЦИАЛИЗАЦИЯ ===
     system("chcp 65001 > nul");
+
     int current_day = 1;
     int current_hour = 8;
     int inventory[INVENTORY_SIZE] = { 1, 2, 3, 0, 4, 5, 0, 7, 1, 9 };
     int choice = -1;
 
+    // === ГЛАВНЫЙ ИГРОВОЙ ЦИКЛ ===
     while (1) {
+        // --- Вывод меню ---
         printf("\n=== ВЕСЕЛЫЙ ФЕРМЕР ===\n");
         printf("[1] Посмотреть на часы\n");
         printf("[2] Промотать время (Поработать)\n");
         printf("[3] Посмотреть инвентарь\n");
         printf("[4] Положить предмет в слот\n");
         printf("[5] Выбросить предмет\n");
+        printf("[6] Ревизия ресурсов\n");
         printf("[0] Выход\n");
         printf("Выберите пункт: ");
 
+        // --- Защита от ввода символов ---
         if (scanf_s("%d", &choice) != 1) {
             printf("Ошибка! Введите число.\n");
             while (getchar() != '\n');
             continue;
         }
 
+        // --- Обработка команд пользователя ---
         switch (choice) {
         case 0:
             printf("Выход из игры...\n");
@@ -123,6 +132,28 @@ int main() {
 
             inventory[slot] = 0;
             printf("Слот %d очищен!\n", slot);
+            break;
+        }
+
+        case 6: {
+            int target_id = 0;
+            int count = 0;
+
+            printf("Введите ID предмета для поиска (0-9): ");
+            if (scanf_s("%d", &target_id) != 1) {
+                printf("Ошибка ввода!\n");
+                while (getchar() != '\n');
+                break;
+            }
+
+            printf("Найден в слотах: ");
+            for (int i = 0; i < INVENTORY_SIZE; i++) {
+                if (inventory[i] == target_id) {
+                    printf("%d ", i);
+                    count++;
+                }
+            }
+            printf("\nВсего найдено: %d шт.\n", count);
             break;
         }
 
