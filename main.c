@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h> // Добавили библиотеку для работы со строками
+#include <string.h>
 
 #define INVENTORY_SIZE 10
 #define MAX_ITEMS 20
@@ -18,6 +18,9 @@ void action_show_inventory(const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN])
 void action_put_item(int inv[]);
 void action_drop_item(int inv[]);
 void action_check_adjacent(const int inv[]);
+// НОВЫЕ ФУНКЦИИ (Шаг 3)
+void action_search_by_name(const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]);
+void action_write_diary(const char* name, int day, int hour, const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]);
 
 // --- ОСНОВНАЯ ФУНКЦИЯ ---
 int main() {
@@ -30,7 +33,6 @@ int main() {
     char item_names[MAX_ITEMS][MAX_NAME_LEN];
     char player_name[MAX_PLAYER_NAME];
 
-    // Инициализация (Шаг 2)
     load_item_names(item_names);
     ask_player_name(player_name);
 
@@ -39,18 +41,16 @@ int main() {
         int choice = get_valid_input();
 
         switch (choice) {
-        case 0:
-            printf("Выход из игры...\n");
-            return 0;
+        case 0: printf("Выход из игры...\n"); return 0;
         case 1: action_show_time(current_day, current_hour); break;
         case 2: action_work(&current_day, &current_hour); break;
         case 3: action_show_inventory(inventory, item_names); break;
         case 4: action_put_item(inventory); break;
         case 5: action_drop_item(inventory); break;
         case 6: action_check_adjacent(inventory); break;
-        default:
-            printf("Неверный пункт меню!\n");
-            break;
+        case 7: action_search_by_name(inventory, item_names); break;
+        case 8: action_write_diary(player_name, current_day, current_hour, inventory, item_names); break;
+        default: printf("Неверный пункт меню!\n"); break;
         }
     }
     return 0;
@@ -59,7 +59,6 @@ int main() {
 // --- РЕАЛИЗАЦИЯ ФУНКЦИЙ ---
 
 void load_item_names(char names[MAX_ITEMS][MAX_NAME_LEN]) {
-    // Базовые названия (защита, если файла нет)
     for (int i = 0; i < MAX_ITEMS; i++) strcpy_s(names[i], MAX_NAME_LEN, "Неизвестно");
     strcpy_s(names[0], MAX_NAME_LEN, "Пусто");
     strcpy_s(names[1], MAX_NAME_LEN, "Дерево");
@@ -83,7 +82,6 @@ void load_item_names(char names[MAX_ITEMS][MAX_NAME_LEN]) {
         if (id >= 0 && id < MAX_ITEMS) strcpy_s(names[id], MAX_NAME_LEN, temp_name);
     }
     fclose(f);
-    printf("Каталог предметов успешно загружен из items.txt.\n");
 }
 
 void ask_player_name(char* name) {
@@ -91,7 +89,7 @@ void ask_player_name(char* name) {
     if (scanf_s("%31s", name, (unsigned)MAX_PLAYER_NAME) != 1) {
         strcpy_s(name, MAX_PLAYER_NAME, "Фермер");
     }
-    while (getchar() != '\n'); // Очистка буфера
+    while (getchar() != '\n');
 }
 
 void display_menu(const char* name) {
@@ -102,6 +100,8 @@ void display_menu(const char* name) {
     printf("[4] Положить предмет в слот\n");
     printf("[5] Выбросить предмет\n");
     printf("[6] Проверка соседних ячеек (ЛР 2)\n");
+    printf("[7] Поиск предмета по названию\n");
+    printf("[8] Записать состояние в дневник (diary.txt)\n");
     printf("[0] Выход\n");
     printf("Выберите пункт: ");
 }
@@ -116,78 +116,37 @@ int get_valid_input() {
     return choice;
 }
 
-void action_show_time(int day, int hour) {
-    printf("Текущее время: День %d, %02d:00\n", day, hour);
-}
+void action_show_time(int day, int hour) { printf("Текущее время: День %d, %02d:00\n", day, hour); }
 
 void action_work(int* day, int* hour) {
     int hours_to_work = 0;
     printf("Сколько часов поработать? ");
     if (scanf_s("%d", &hours_to_work) != 1 || hours_to_work < 0) {
-        printf("Ошибка ввода! Введите положительное число.\n");
-        while (getchar() != '\n');
-        return;
+        printf("Ошибка ввода!\n"); while (getchar() != '\n'); return;
     }
     *hour += hours_to_work;
     if (*hour >= 24) { *day += *hour / 24; *hour = *hour % 24; }
-    printf("Время промотано! Текущее время: День %d, %02d:00\n", *day, *hour);
+    printf("Время промотано!\n");
 }
 
 void action_show_inventory(const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]) {
     printf("--- Инвентарь ---\n");
     for (int i = 0; i < INVENTORY_SIZE; i++) {
         int item_id = inv[i];
-        if (item_id >= 0 && item_id < MAX_ITEMS) {
-            printf("Слот %d: [%d] - %s\n", i, item_id, names[item_id]);
-        }
-        else {
-            printf("Слот %d: [%d] - Неизвестный предмет\n", i, item_id);
-        }
+        if (item_id >= 0 && item_id < MAX_ITEMS) printf("Слот %d: [%d] - %s\n", i, item_id, names[item_id]);
+        else printf("Слот %d: [%d] - Неизвестно\n", i, item_id);
     }
 }
 
 void action_put_item(int inv[]) {
     int slot = -1, item_id = 0;
-    printf("Введите индекс слота (0-9): ");
-    if (scanf_s("%d", &slot) != 1 || slot < 0 || slot >= INVENTORY_SIZE) {
-        printf("Ошибка: неверный слот!\n");
-        while (getchar() != '\n');
-        return;
-    }
-    printf("Введите ID предмета: ");
-    if (scanf_s("%d", &item_id) != 1) {
-        printf("Ошибка ввода!\n");
-        while (getchar() != '\n');
-        return;
-    }
+    printf("Слот (0-9): ");
+    if (scanf_s("%d", &slot) != 1 || slot < 0 || slot >= INVENTORY_SIZE) { while (getchar() != '\n'); return; }
+    printf("ID предмета: ");
+    if (scanf_s("%d", &item_id) != 1) { while (getchar() != '\n'); return; }
     inv[slot] = item_id;
-    printf("Предмет добавлен в слот %d!\n", slot);
 }
 
 void action_drop_item(int inv[]) {
     int slot = -1;
-    printf("Введите индекс слота для очистки (0-9): ");
-    if (scanf_s("%d", &slot) != 1 || slot < 0 || slot >= INVENTORY_SIZE) {
-        printf("Ошибка: такого слота не существует!\n");
-        while (getchar() != '\n');
-        return;
-    }
-    inv[slot] = 0;
-    printf("Слот %d очищен!\n", slot);
-}
-
-void action_check_adjacent(const int inv[]) {
-    int id1 = 0, id2 = 0, found = 0;
-    printf("Введите ID первого предмета (0-9): ");
-    if (scanf_s("%d", &id1) != 1) { printf("Ошибка!\n"); while (getchar() != '\n'); return; }
-    printf("Введите ID второго предмета (0-9): ");
-    if (scanf_s("%d", &id2) != 1) { printf("Ошибка!\n"); while (getchar() != '\n'); return; }
-
-    for (int i = 0; i < INVENTORY_SIZE - 1; i++) {
-        if ((inv[i] == id1 && inv[i + 1] == id2) || (inv[i] == id2 && inv[i + 1] == id1)) {
-            printf("Предметы лежат рядом в слотах: %d и %d\n", i, i + 1);
-            found = 1;
-        }
-    }
-    if (!found) printf("Предметы не лежат в соседних слотах.\n");
-}
+    printf("
