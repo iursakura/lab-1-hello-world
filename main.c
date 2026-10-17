@@ -21,7 +21,7 @@ int main() {
         printf("[3] Посмотреть инвентарь\n");
         printf("[4] Положить предмет в слот\n");
         printf("[5] Выбросить предмет\n");
-        printf("[6] Ревизия ресурсов\n");
+        printf("[6] Проверка соседних ячеек\n");
         printf("[0] Выход\n");
         printf("Выберите пункт: ");
 
@@ -136,24 +136,37 @@ int main() {
         }
 
         case 6: {
-            int target_id = 0;
-            int count = 0;
+            int id1 = 0, id2 = 0;
+            int found = 0;
 
-            printf("Введите ID предмета для поиска (0-9): ");
-            if (scanf_s("%d", &target_id) != 1) {
+            printf("Введите ID первого предмета (0-9): ");
+            if (scanf_s("%d", &id1) != 1) {
                 printf("Ошибка ввода!\n");
                 while (getchar() != '\n');
                 break;
             }
 
-            printf("Найден в слотах: ");
-            for (int i = 0; i < INVENTORY_SIZE; i++) {
-                if (inventory[i] == target_id) {
-                    printf("%d ", i);
-                    count++;
+            printf("Введите ID второго предмета (0-9): ");
+            if (scanf_s("%d", &id2) != 1) {
+                printf("Ошибка ввода!\n");
+                while (getchar() != '\n');
+                break;
+            }
+
+            // Проходим по массиву до предпоследнего элемента
+            for (int i = 0; i < INVENTORY_SIZE - 1; i++) {
+                // Проверяем совпадение в любом порядке: (id1, id2) или (id2, id1)
+                if ((inventory[i] == id1 && inventory[i + 1] == id2) ||
+                    (inventory[i] == id2 && inventory[i + 1] == id1)) {
+                    printf("Предметы лежат рядом в слотах: %d и %d\n", i, i + 1);
+                    found = 1;
                 }
             }
-            printf("\nВсего найдено: %d шт.\n", count);
+
+            if (!found) {
+                printf("Предметы не лежат в соседних слотах.\n");
+            }
+
             break;
         }
 
