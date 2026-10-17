@@ -18,7 +18,6 @@ void action_show_inventory(const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN])
 void action_put_item(int inv[]);
 void action_drop_item(int inv[]);
 void action_check_adjacent(const int inv[]);
-// НОВЫЕ ФУНКЦИИ (Шаг 3)
 void action_search_by_name(const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]);
 void action_write_diary(const char* name, int day, int hour, const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]);
 
@@ -149,4 +148,81 @@ void action_put_item(int inv[]) {
 
 void action_drop_item(int inv[]) {
     int slot = -1;
-    printf("
+    printf("Слот для очистки (0-9): ");
+    if (scanf_s("%d", &slot) != 1 || slot < 0 || slot >= INVENTORY_SIZE) { while (getchar() != '\n'); return; }
+    inv[slot] = 0;
+}
+
+void action_check_adjacent(const int inv[]) {
+    int id1 = 0, id2 = 0, found = 0;
+    printf("ID первого предмета: "); if (scanf_s("%d", &id1) != 1) { while (getchar() != '\n'); return; }
+    printf("ID второго предмета: "); if (scanf_s("%d", &id2) != 1) { while (getchar() != '\n'); return; }
+
+    for (int i = 0; i < INVENTORY_SIZE - 1; i++) {
+        if ((inv[i] == id1 && inv[i + 1] == id2) || (inv[i] == id2 && inv[i + 1] == id1)) {
+            printf("Предметы лежат рядом в слотах: %d и %d\n", i, i + 1); found = 1;
+        }
+    }
+    if (!found) printf("Предметы не лежат в соседних слотах.\n");
+}
+
+void action_search_by_name(const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]) {
+    char search_term[MAX_NAME_LEN];
+    printf("Введите точное название предмета для поиска: ");
+    if (scanf_s("%31s", search_term, (unsigned)MAX_NAME_LEN) != 1) {
+        while (getchar() != '\n');
+        return;
+    }
+
+    int target_id = -1;
+    for (int i = 1; i < MAX_ITEMS; i++) {
+        if (strcmp(names[i], search_term) == 0) {
+            target_id = i;
+            break;
+        }
+    }
+
+    if (target_id == -1) {
+        printf("Предмет '%s' не существует в каталоге.\n", search_term);
+        return;
+    }
+
+    int count = 0;
+    printf("Найден в слотах: ");
+    for (int i = 0; i < INVENTORY_SIZE; i++) {
+        if (inv[i] == target_id) {
+            printf("%d ", i);
+            count++;
+        }
+    }
+    if (count > 0) printf("\nВсего штук в рюкзаке: %d\n", count);
+    else printf("Нет в рюкзаке.\n");
+}
+
+void action_write_diary(const char* name, int day, int hour, const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]) {
+    FILE* f;
+    if (fopen_s(&f, "diary.txt", "a") != 0 || f == NULL) {
+        printf("Ошибка: не удалось открыть diary.txt для записи!\n");
+        return;
+    }
+
+    fprintf(f, "==============================\n");
+    fprintf(f, "Фермер: %s\n", name);
+    fprintf(f, "Запись от: День %d, %02d:00\n", day, hour);
+    fprintf(f, "Состояние рюкзака:\n");
+
+    int empty_count = 0;
+    for (int i = 0; i < INVENTORY_SIZE; i++) {
+        if (inv[i] == 0) {
+            empty_count++;
+        }
+        else {
+            fprintf(f, " - Слот %d: %s\n", i, names[inv[i]]);
+        }
+    }
+    fprintf(f, "Пустых слотов: %d\n", empty_count);
+    fprintf(f, "==============================\n\n");
+
+    fclose(f);
+    printf("Состояние успешно записано в diary.txt!\n");
+}
