@@ -11,3 +11,5 @@
 *.ilk
 *.command
 *.user
+/diary.txt
+/output.txt

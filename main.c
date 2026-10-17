@@ -20,6 +20,7 @@ void action_drop_item(int inv[]);
 void action_check_adjacent(const int inv[]);
 void action_search_by_name(const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]);
 void action_write_diary(const char* name, int day, int hour, const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]);
+void action_notice_board(int current_day, const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]);
 
 // --- ОСНОВНАЯ ФУНКЦИЯ ---
 int main() {
@@ -49,6 +50,7 @@ int main() {
         case 6: action_check_adjacent(inventory); break;
         case 7: action_search_by_name(inventory, item_names); break;
         case 8: action_write_diary(player_name, current_day, current_hour, inventory, item_names); break;
+        case 9: action_notice_board(current_day, inventory, item_names); break;
         default: printf("Неверный пункт меню!\n"); break;
         }
     }
@@ -101,6 +103,7 @@ void display_menu(const char* name) {
     printf("[6] Проверка соседних ячеек (ЛР 2)\n");
     printf("[7] Поиск предмета по названию\n");
     printf("[8] Записать состояние в дневник (diary.txt)\n");
+    printf("[9] Доска объявлений (Квесты)\n");
     printf("[0] Выход\n");
     printf("Выберите пункт: ");
 }
@@ -125,7 +128,7 @@ void action_work(int* day, int* hour) {
     }
     *hour += hours_to_work;
     if (*hour >= 24) { *day += *hour / 24; *hour = *hour % 24; }
-    printf("Время промотано!\n");
+    printf("Время промотано! Текущее время: День %d, %02d:00\n", *day, *hour);
 }
 
 void action_show_inventory(const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]) {
@@ -225,4 +228,70 @@ void action_write_diary(const char* name, int day, int hour, const int inv[], ch
 
     fclose(f);
     printf("Состояние успешно записано в diary.txt!\n");
+}
+
+// --- ПРАВИЛЬНЫЙ ВАРИАНТ 9 (Чтение input.txt, запись в output.txt и на экран) ---
+void action_notice_board(int current_day, const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]) {
+    FILE* fin, * fout;
+
+    if (fopen_s(&fin, "input.txt", "r") != 0 || fin == NULL) {
+        printf("Ошибка: не удалось найти файл input.txt! Создайте его в проекте.\n");
+        return;
+    }
+
+    if (fopen_s(&fout, "output.txt", "w") != 0 || fout == NULL) {
+        printf("Ошибка: не удалось создать файл output.txt!\n");
+        fclose(fin);
+        return;
+    }
+
+    int q_day, q_reward;
+    char q_cust[MAX_NAME_LEN], q_item[MAX_NAME_LEN];
+    int active_count = 0;
+
+    // Выводим заголовок И на экран, И в файл
+    printf("\n--- ДОСТУПНЫЕ КВЕСТЫ (День %d) ---\n", current_day);
+    fprintf(fout, "--- ДОСТУПНЫЕ КВЕСТЫ (День %d) ---\n", current_day);
+
+    // Читаем строки из input.txt в формате: День | Заказчик | Предмет | Награда
+    while (fscanf_s(fin, "%d | %31s | %31s | %d", &q_day, q_cust, (unsigned)MAX_NAME_LEN, q_item, (unsigned)MAX_NAME_LEN, &q_reward) == 4) {
+
+        // По заданию: отфильтровать только те задания, которые уже доступны игроку
+        if (q_day <= current_day) {
+            active_count++;
+
+            // Проверить по названиям предметов, лежит ли Требуемый_предмет в инвентаре
+            int found_in_inventory = 0;
+            for (int i = 0; i < INVENTORY_SIZE; i++) {
+                int item_id = inv[i];
+                if (item_id > 0 && item_id < MAX_ITEMS) {
+                    if (strcmp(names[item_id], q_item) == 0) {
+                        found_in_inventory = 1;
+                        break;
+                    }
+                }
+            }
+
+            // Выводим статус И на экран, И в файл (как требует задание)
+            if (found_in_inventory) {
+                printf("%s просит: %s (Награда: %d) -> [ГОТОВО К СДАЧЕ]\n", q_cust, q_item, q_reward);
+                fprintf(fout, "%s просит: %s (Награда: %d) -> [ГОТОВО К СДАЧЕ]\n", q_cust, q_item, q_reward);
+            }
+            else {
+                printf("%s просит: %s (Награда: %d) -> [В ПРОЦЕССЕ]\n", q_cust, q_item, q_reward);
+                fprintf(fout, "%s просит: %s (Награда: %d) -> [В ПРОЦЕССЕ]\n", q_cust, q_item, q_reward);
+            }
+        }
+    }
+
+    if (active_count == 0) {
+        printf("На сегодня доступных заданий нет.\n");
+        fprintf(fout, "На сегодня доступных заданий нет.\n");
+    }
+
+    fclose(fin);
+    fclose(fout);
+
+    printf("----------------------------------\n");
+    printf("(Результат также успешно сохранен в файл output.txt для проверки)\n");
 }
