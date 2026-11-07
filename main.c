@@ -28,6 +28,7 @@ char** allocate_map(int height, int width);
 void free_map(char** map, int height);
 void generate_tower(char** map, int height, int width, int* hero_x, int* hero_y);
 void print_map(char** map, int height, int width, int hero_x, int hero_y, int floor);
+void action_adventure();
 
 // --- ОСНОВНАЯ ФУНКЦИЯ ---
 int main() {
@@ -58,6 +59,7 @@ int main() {
         case 7: action_search_by_name(inventory, item_names); break;
         case 8: action_write_diary(player_name, current_day, current_hour, inventory, item_names); break;
         case 9: action_notice_board(current_day, inventory, item_names); break;
+        case 10: action_adventure(); break;
         default: printf("Неверный пункт меню!\n"); break;
         }
     }
@@ -111,6 +113,7 @@ void display_menu(const char* name) {
     printf("[7] Поиск предмета по названию\n");
     printf("[8] Записать состояние в дневник (diary.txt)\n");
     printf("[9] Доска объявлений (Квесты)\n");
+    printf("[10] Отправиться в приключение\n");
     printf("[0] Выход\n");
     printf("Выберите пункт: ");
 }
@@ -414,4 +417,105 @@ void print_map(char** map, int height, int width, int hero_x, int hero_y, int fl
     printf("[W/A/S/D] - Движение | [Q] - Сбежать домой (только на D)\n");
     printf("Обозначения: @ - Герой, D - Лестница вниз, U - Лестница вверх\n");
     printf("             | - Зеркальная стена, S - Переключатель, # - Стена\n");
+}
+
+void action_adventure() {
+    srand((unsigned)time(NULL));
+
+    int current_floor = 1;
+    int height = 10 + rand() % 5;          // от 10 до 14
+    int width = 16 + (rand() % 4) * 2;     // от 16 до 22 (чётная ширина)
+    int hero_x = 0, hero_y = 0;
+
+    char** map = allocate_map(height, width);
+    if (map == NULL) return;
+
+    generate_tower(map, height, width, &hero_x, &hero_y);
+
+    printf("\nВы входите в загадочную Башню...\n");
+
+    while (1) {
+        print_map(map, height, width, hero_x, hero_y, current_floor);
+
+        printf("Ваш ход (W/A/S/D/Q): ");
+        char command;
+        if (scanf_s(" %c", &command, 1) != 1) {
+            while (getchar() != '\n');
+            continue;
+        }
+        while (getchar() != '\n'); // очистка буфера
+
+        if (command == 'q' || command == 'Q') {
+            // Выход домой работает ТОЛЬКО если стоим на лестнице вниз 'D'
+            if (map[hero_y][hero_x] == 'D') {
+                printf("\nВы благополучно спустились по лестнице D и вернулись на ферму!\n");
+                free_map(map, height);
+                return;
+            } else {
+                printf("\nНельзя сбежать отсюда! Выход домой доступен только на лестнице вниз (D).\n");
+                continue;
+            }
+        }
+
+        int new_x = hero_x;
+        int new_y = hero_y;
+
+        if (command == 'w' || command == 'W') new_y--;
+        else if (command == 's' || command == 'S') new_y++;
+        else if (command == 'a' || command == 'A') new_x--;
+        else if (command == 'd' || command == 'D') new_x++;
+        else {
+            printf("\nНеизвестная команда! Используйте W, A, S, D или Q.\n");
+            continue;
+        }
+
+        // Проверка выхода за границы массива (защита от падения)
+        if (new_y < 0 || new_y >= height || new_x < 0 || new_x >= width) {
+            printf("\nВы не можете выйти за пределы башни!\n");
+            continue;
+        }
+
+        char target_cell = map[new_y][new_x];
+
+        // Проверка препятствий и стен
+        if (target_cell == '#') {
+            printf("\nВпереди глухая стена! Прохода нет.\n");
+            continue;
+        }
+        if (target_cell == '|') {
+            printf("\nВпереди магическая зеркальная стена! Найдите переключатель (S), чтобы снять барьер.\n");
+            continue;
+        }
+
+        // Перемещаем героя
+        hero_x = new_x;
+        hero_y = new_y;
+
+        // Если наступили на переключатель (S) — зеркальная стена исчезает!
+        if (target_cell == 'S') {
+            printf("\n>>> ЩЁЛК! Вы нажали на переключатель (S)! Зеркальная стена посередине исчезла! <<<\n");
+            int mid_x = width / 2;
+            for (int y = 1; y < height - 1; y++) {
+                if (map[y][mid_x] == '|') {
+                    map[y][mid_x] = '.';
+                }
+            }
+            map[hero_y][hero_x] = '.'; // Рычаг сработал и стал обычным полом
+        }
+
+        // Если наступили на лестницу вверх (U) — переход на следующий этаж
+        if (target_cell == 'U') {
+            printf("\n>>> Поздравляем! Вы поднялись по лестнице U на следующий этаж! <<<\n");
+            free_map(map, height); // Очищаем старую память
+
+            current_floor++;
+            height = 10 + rand() % 5;
+            width = 16 + (rand() % 4) * 2;
+
+            map = allocate_map(height, width); // Выделяем новую память
+            if (map == NULL) return;
+
+            generate_tower(map, height, width, &hero_x, &hero_y);
+        }
+    }
 }

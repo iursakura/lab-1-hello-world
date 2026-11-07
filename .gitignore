@@ -11,5 +11,12 @@
 *.ilk
 *.command
 *.user
+*.exe
+*.o
+*.out
+x64/
+Debug/
+Release/
+.vs/
 /diary.txt
 /output.txt
