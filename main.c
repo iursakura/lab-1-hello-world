@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define INVENTORY_SIZE 10
 #define MAX_ITEMS 20
@@ -21,6 +22,10 @@ void action_check_adjacent(const int inv[]);
 void action_search_by_name(const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]);
 void action_write_diary(const char* name, int day, int hour, const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]);
 void action_notice_board(int current_day, const int inv[], char names[MAX_ITEMS][MAX_NAME_LEN]);
+
+// Функции для работы с динамической памятью карты (ЛР 4)
+char** allocate_map(int height, int width);
+void free_map(char** map, int height);
 
 // --- ОСНОВНАЯ ФУНКЦИЯ ---
 int main() {
@@ -66,7 +71,7 @@ void load_item_names(char names[MAX_ITEMS][MAX_NAME_LEN]) {
     strcpy_s(names[2], MAX_NAME_LEN, "Камень");
     strcpy_s(names[3], MAX_NAME_LEN, "Семена");
     strcpy_s(names[4], MAX_NAME_LEN, "Пшеница");
-    strcpy_s(names[5], MAX_NAME_LEN, "Яблоко");
+    strcpy_s(names[5], MAX_NAME_LEN, "Груша");
     strcpy_s(names[6], MAX_NAME_LEN, "Лопата");
     strcpy_s(names[7], MAX_NAME_LEN, "Вода");
     strcpy_s(names[8], MAX_NAME_LEN, "Удобрение");
@@ -294,4 +299,41 @@ void action_notice_board(int current_day, const int inv[], char names[MAX_ITEMS]
 
     printf("----------------------------------\n");
     printf("(Результат также успешно сохранен в файл output.txt для проверки)\n");
+}
+
+// --- ФУНКЦИИ РАБОТЫ С ДИНАМИЧЕСКОЙ ПАМЯТЬЮ (ЛР 4) ---
+
+char** allocate_map(int height, int width) {
+    // 1. Выделяем память под массив указателей на строки
+    char** map = (char**)malloc(height * sizeof(char*));
+    if (map == NULL) {
+        printf("Ошибка выделения памяти под строки карты!\n");
+        return NULL;
+    }
+
+    // 2. В цикле выделяем память под каждый столбец строки
+    for (int i = 0; i < height; i++) {
+        map[i] = (char*)malloc(width * sizeof(char));
+        if (map[i] == NULL) {
+            printf("Ошибка выделения памяти под ячейки карты!\n");
+            // Если упало на середине — освобождаем уже выделенное, чтобы не было утечки
+            for (int j = 0; j < i; j++) free(map[j]);
+            free(map);
+            return NULL;
+        }
+    }
+    return map;
+}
+
+void free_map(char** map, int height) {
+    if (map == NULL) return;
+
+    // 1. Освобождаем каждую строку
+    for (int i = 0; i < height; i++) {
+        if (map[i] != NULL) {
+            free(map[i]);
+        }
+    }
+    // 2. Освобождаем массив указателей
+    free(map);
 }
