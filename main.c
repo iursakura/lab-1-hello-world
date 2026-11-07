@@ -27,6 +27,7 @@ void action_notice_board(int current_day, const int inv[], char names[MAX_ITEMS]
 char** allocate_map(int height, int width);
 void free_map(char** map, int height);
 void generate_tower(char** map, int height, int width, int* hero_x, int* hero_y);
+void print_map(char** map, int height, int width, int hero_x, int hero_y, int floor);
 
 // --- ОСНОВНАЯ ФУНКЦИЯ ---
 int main() {
@@ -395,4 +396,22 @@ void generate_tower(char** map, int height, int width, int* hero_x, int* hero_y)
         u_x = (mid_x + 1) + rand() % (width - mid_x - 2);
     } while (map[u_y][u_x] == '#');
     map[u_y][u_x] = 'U';
+}
+
+void print_map(char** map, int height, int width, int hero_x, int hero_y, int floor) {
+    printf("\n=== БАШНЯ: ЭТАЖ %d ===\n", floor);
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (y == hero_y && x == hero_x) {
+                printf("@"); // Игрок
+            } else {
+                printf("%c", map[y][x]);
+            }
+        }
+        printf("\n");
+    }
+    printf("----------------------------------------\n");
+    printf("[W/A/S/D] - Движение | [Q] - Сбежать домой (только на D)\n");
+    printf("Обозначения: @ - Герой, D - Лестница вниз, U - Лестница вверх\n");
+    printf("             | - Зеркальная стена, S - Переключатель, # - Стена\n");
 }
