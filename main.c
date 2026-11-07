@@ -26,6 +26,7 @@ void action_notice_board(int current_day, const int inv[], char names[MAX_ITEMS]
 // Функции для работы с динамической памятью карты (ЛР 4)
 char** allocate_map(int height, int width);
 void free_map(char** map, int height);
+void generate_tower(char** map, int height, int width, int* hero_x, int* hero_y);
 
 // --- ОСНОВНАЯ ФУНКЦИЯ ---
 int main() {
@@ -336,4 +337,62 @@ void free_map(char** map, int height) {
     }
     // 2. Освобождаем массив указателей
     free(map);
+}
+
+void generate_tower(char** map, int height, int width, int* hero_x, int* hero_y) {
+    int mid_x = width / 2;
+
+    // 1. Заполняем внешние стены (#) и внутренний пол (.)
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (y == 0 || y == height - 1 || x == 0 || x == width - 1) {
+                map[y][x] = '#';
+            } else {
+                map[y][x] = '.';
+            }
+        }
+    }
+
+    // 2. Ставим посередине разделительную зеркальную стену (|)
+    for (int y = 1; y < height - 1; y++) {
+        map[y][mid_x] = '|';
+    }
+
+    // 3. Генерируем препятствия в левой половине и зеркалируем их в правую половину
+    for (int y = 1; y < height - 1; y++) {
+        for (int x = 1; x < mid_x; x++) {
+            // Шанс 15% на препятствие
+            if (rand() % 100 < 15) {
+                map[y][x] = '#';
+                // Зеркальное отражение в правую часть:
+                int mirror_x = (width - 1) - x;
+                map[y][mirror_x] = '#';
+            }
+        }
+    }
+
+    // 4. Лестница вниз D (точка старта) в левой половине
+    int start_y = 1 + rand() % (height - 2);
+    int start_x = 1 + rand() % (mid_x - 1);
+    map[start_y][start_x] = 'D';
+
+    // Координаты героя совпадают со стартом
+    *hero_y = start_y;
+    *hero_x = start_x;
+
+    // 5. Переключатель (рычаг) S в левой половине (не на старте)
+    int sw_y, sw_x;
+    do {
+        sw_y = 1 + rand() % (height - 2);
+        sw_x = 1 + rand() % (mid_x - 1);
+    } while (sw_y == start_y && sw_x == start_x);
+    map[sw_y][sw_x] = 'S';
+
+    // 6. Лестница вверх U в правой половине (за зеркальной стеной)
+    int u_y, u_x;
+    do {
+        u_y = 1 + rand() % (height - 2);
+        u_x = (mid_x + 1) + rand() % (width - mid_x - 2);
+    } while (map[u_y][u_x] == '#');
+    map[u_y][u_x] = 'U';
 }
