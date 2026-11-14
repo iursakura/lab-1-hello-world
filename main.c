@@ -414,9 +414,10 @@ void print_map(char** map, int height, int width, int hero_x, int hero_y, int fl
         printf("\n");
     }
     printf("----------------------------------------\n");
-    printf("[W/A/S/D] - Движение | [Q] - Сбежать домой (только на D)\n");
+    printf("Управление: [W] - Вверх | [S] - Вниз | [A] - Влево | [D] - Вправо\n");
+    printf("            [Q] - Сбежать домой (работает только на клетке D)\n");
     printf("Обозначения: @ - Герой, D - Лестница вниз, U - Лестница вверх\n");
-    printf("             | - Зеркальная стена, S - Переключатель, # - Стена\n");
+    printf("             | - Зеркальная стена, S - Переключатель, # - Стена, . - Пол\n");
 }
 
 void action_adventure() {
@@ -437,7 +438,7 @@ void action_adventure() {
     while (1) {
         print_map(map, height, width, hero_x, hero_y, current_floor);
 
-        printf("Ваш ход (W/A/S/D/Q): ");
+        printf("Ваш ход (W-вверх, S-вниз, A-влево, D-вправо, Q-домой): ");
         char command;
         if (scanf_s(" %c", &command, 1) != 1) {
             while (getchar() != '\n');
