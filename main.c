@@ -357,20 +357,22 @@ void generate_tower(char** map, int height, int width, int* hero_x, int* hero_y)
         }
     }
 
-    // 2. Ставим посередине разделительную зеркальную стену (|)
+    // 2. Ставим строго посередине разделительную зеркальную стену (|)
     for (int y = 1; y < height - 1; y++) {
         map[y][mid_x] = '|';
     }
 
-    // 3. Генерируем препятствия в левой половине и зеркалируем их в правую половину
+    // 3. Генерируем препятствия в левой половине и зеркалируем строго в правую половину
     for (int y = 1; y < height - 1; y++) {
         for (int x = 1; x < mid_x; x++) {
             // Шанс 15% на препятствие
             if (rand() % 100 < 15) {
                 map[y][x] = '#';
-                // Зеркальное отражение в правую часть:
-                int mirror_x = (width - 1) - x;
-                map[y][mirror_x] = '#';
+                // Симметричное зеркальное отражение относительно центра:
+                int mirror_x = mid_x + (mid_x - x);
+                if (mirror_x < width - 1) {
+                    map[y][mirror_x] = '#';
+                }
             }
         }
     }
@@ -424,8 +426,8 @@ void action_adventure() {
     srand((unsigned)time(NULL));
 
     int current_floor = 1;
-    int height = 10 + rand() % 5;          // от 10 до 14
-    int width = 16 + (rand() % 4) * 2;     // от 16 до 22 (чётная ширина)
+    int height = 11 + (rand() % 3) * 2;    // Нечётная высота (11, 13, 15)
+    int width = 19 + (rand() % 3) * 2;     // Нечётная ширина (19, 21, 23) для идеального центра
     int hero_x = 0, hero_y = 0;
 
     char** map = allocate_map(height, width);
@@ -510,8 +512,8 @@ void action_adventure() {
             free_map(map, height); // Очищаем старую память
 
             current_floor++;
-            height = 10 + rand() % 5;
-            width = 16 + (rand() % 4) * 2;
+            height = 11 + (rand() % 3) * 2;
+            width = 19 + (rand() % 3) * 2;
 
             map = allocate_map(height, width); // Выделяем новую память
             if (map == NULL) return;
