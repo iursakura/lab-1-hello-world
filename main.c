@@ -26,8 +26,8 @@ void action_notice_board(int current_day, const int inv[], char names[MAX_ITEMS]
 // Функции для работы с динамической памятью карты (ЛР 4)
 char** allocate_map(int height, int width);
 void free_map(char** map, int height);
-void generate_tower(char** map, int height, int width, int* hero_x, int* hero_y);
-void print_map(char** map, int height, int width, int hero_x, int hero_y, int floor);
+void generate_tower(char** real_map, int height, int width, int* hero_x, int* hero_y);
+void print_map(char** real_map, int height, int width, int hero_x, int hero_y, int floor, int mirror_active);
 void action_adventure();
 
 // --- ОСНОВНАЯ ФУНКЦИЯ ---
@@ -343,74 +343,99 @@ void free_map(char** map, int height) {
     free(map);
 }
 
-void generate_tower(char** map, int height, int width, int* hero_x, int* hero_y) {
+void generate_tower(char** real_map, int height, int width, int* hero_x, int* hero_y) {
     int mid_x = width / 2;
 
     // 1. Заполняем внешние стены (#) и внутренний пол (.)
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             if (y == 0 || y == height - 1 || x == 0 || x == width - 1) {
-                map[y][x] = '#';
+                real_map[y][x] = '#';
             } else {
-                map[y][x] = '.';
+                real_map[y][x] = '.';
             }
         }
     }
 
     // 2. Ставим строго посередине разделительную зеркальную стену (|)
     for (int y = 1; y < height - 1; y++) {
-        map[y][mid_x] = '|';
+        real_map[y][mid_x] = '|';
     }
 
-    // 3. Генерируем препятствия в левой половине и зеркалируем строго в правую половину
+    // 3. Генерируем препятствия в ЛЕВОЙ половине
     for (int y = 1; y < height - 1; y++) {
         for (int x = 1; x < mid_x; x++) {
-            // Шанс 15% на препятствие
-            if (rand() % 100 < 15) {
-                map[y][x] = '#';
-                // Симметричное зеркальное отражение относительно центра:
-                int mirror_x = mid_x + (mid_x - x);
-                if (mirror_x < width - 1) {
-                    map[y][mirror_x] = '#';
-                }
+            if (rand() % 100 < 18) {
+                real_map[y][x] = '#';
             }
         }
     }
 
-    // 4. Лестница вниз D (точка старта) в левой половине
+    // 4. Генерируем РЕАЛЬНЫЕ (СОВЕРШЕННО ДРУГИЕ) препятствия в ПРАВОЙ половине
+    // Они скрыты, пока действует оптическая зеркальная иллюзия!
+    for (int y = 1; y < height - 1; y++) {
+        for (int x = mid_x + 1; x < width - 1; x++) {
+            if (rand() % 100 < 22) {
+                real_map[y][x] = '#';
+            }
+        }
+    }
+
+    // 5. Лестница вниз D (точка старта) в левой половине
     int start_y = 1 + rand() % (height - 2);
     int start_x = 1 + rand() % (mid_x - 1);
-    map[start_y][start_x] = 'D';
+    real_map[start_y][start_x] = 'D';
 
     // Координаты героя совпадают со стартом
     *hero_y = start_y;
     *hero_x = start_x;
 
-    // 5. Переключатель (рычаг) S в левой половине (не на старте)
+    // 6. Переключатель (рычаг) S в левой половине (не на старте)
     int sw_y, sw_x;
     do {
         sw_y = 1 + rand() % (height - 2);
         sw_x = 1 + rand() % (mid_x - 1);
     } while (sw_y == start_y && sw_x == start_x);
-    map[sw_y][sw_x] = 'S';
+    real_map[sw_y][sw_x] = 'S';
 
-    // 6. Лестница вверх U в правой половине (за зеркальной стеной)
+    // 7. Лестница вверх U в правой половине (на свободном месте)
     int u_y, u_x;
     do {
         u_y = 1 + rand() % (height - 2);
         u_x = (mid_x + 1) + rand() % (width - mid_x - 2);
-    } while (map[u_y][u_x] == '#');
-    map[u_y][u_x] = 'U';
+    } while (real_map[u_y][u_x] == '#');
+    real_map[u_y][u_x] = 'U';
 }
 
-void print_map(char** map, int height, int width, int hero_x, int hero_y, int floor) {
-    printf("\n=== БАШНЯ: ЭТАЖ %d ===\n", floor);
+void print_map(char** real_map, int height, int width, int hero_x, int hero_y, int floor, int mirror_active) {
+    int mid_x = width / 2;
+    printf("\n=== БАШНЯ: ЭТАЖ %d %s ===\n", floor, mirror_active ? "[ЗЕРКАЛО АКТИВНО]" : "[ИЛЛЮЗИЯ РАССЕЯНА]");
+
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            if (y == hero_y && x == hero_x) {
-                printf("@"); // Игрок
-            } else {
-                printf("%c", map[y][x]);
+            // Если зеркало активно и мы смотрим в ПРАВУЮ половину:
+            // отображаем оптическое зеркальное отражение ЛЕВОЙ половины!
+            if (mirror_active && x > mid_x && x < width - 1 && y > 0 && y < height - 1) {
+                int left_x = mid_x - (x - mid_x); // Симметричная точка слева
+                if (y == hero_y && left_x == hero_x) {
+                    printf("@"); // Отражение героя в зеркале!
+                } else if (real_map[y][left_x] == 'S') {
+                    printf("S"); // Отражение переключателя
+                } else if (real_map[y][left_x] == 'D') {
+                    printf("D"); // Отражение лестницы вниз
+                } else if (real_map[y][left_x] == '#') {
+                    printf("#"); // Отражение стен
+                } else {
+                    printf(".");
+                }
+            }
+            // Реальный герой на карте
+            else if (y == hero_y && x == hero_x) {
+                printf("@");
+            }
+            // Обычная реальная карта
+            else {
+                printf("%c", real_map[y][x]);
             }
         }
         printf("\n");
@@ -418,8 +443,12 @@ void print_map(char** map, int height, int width, int hero_x, int hero_y, int fl
     printf("----------------------------------------\n");
     printf("Управление: [W] - Вверх | [S] - Вниз | [A] - Влево | [D] - Вправо\n");
     printf("            [Q] - Сбежать домой (работает только на клетке D)\n");
-    printf("Обозначения: @ - Герой, D - Лестница вниз, U - Лестница вверх\n");
-    printf("             | - Зеркальная стена, S - Переключатель, # - Стена, . - Пол\n");
+    if (mirror_active) {
+        printf("Подсказка: В правой части видна лишь иллюзия (ваше отражение в зеркале |)!\n");
+        printf("           Найдите переключатель (S), чтобы разбить зеркало и открыть реальную комнату.\n");
+    } else {
+        printf("Подсказка: Зеркало разбито! Обнажились НАСТОЯЩИЕ препятствия и лестница вверх (U).\n");
+    }
 }
 
 void action_adventure() {
@@ -429,6 +458,7 @@ void action_adventure() {
     int height = 11 + (rand() % 3) * 2;    // Нечётная высота (11, 13, 15)
     int width = 19 + (rand() % 3) * 2;     // Нечётная ширина (19, 21, 23) для идеального центра
     int hero_x = 0, hero_y = 0;
+    int mirror_active = 1;                 // 1 - зеркало работает, 0 - разбито переключателем
 
     char** map = allocate_map(height, width);
     if (map == NULL) return;
@@ -438,7 +468,7 @@ void action_adventure() {
     printf("\nВы входите в загадочную Башню...\n");
 
     while (1) {
-        print_map(map, height, width, hero_x, hero_y, current_floor);
+        print_map(map, height, width, hero_x, hero_y, current_floor, mirror_active);
 
         printf("Ваш ход (W-вверх, S-вниз, A-влево, D-вправо, Q-домой): ");
         char command;
@@ -486,7 +516,7 @@ void action_adventure() {
             continue;
         }
         if (target_cell == '|') {
-            printf("\nВпереди магическая зеркальная стена! Найдите переключатель (S), чтобы снять барьер.\n");
+            printf("\nВпереди магическое зеркало! Найдите переключатель (S), чтобы разрушить иллюзию.\n");
             continue;
         }
 
@@ -494,9 +524,11 @@ void action_adventure() {
         hero_x = new_x;
         hero_y = new_y;
 
-        // Если наступили на переключатель (S) — зеркальная стена исчезает!
+        // Если наступили на переключатель (S) — зеркальная стена исчезает, иллюзия рассеивается!
         if (target_cell == 'S') {
-            printf("\n>>> ЩЁЛК! Вы нажали на переключатель (S)! Зеркальная стена посередине исчезла! <<<\n");
+            printf("\n>>> ЩЁЛК! Вы нажали переключатель (S)! <<<\n");
+            printf(">>> Зеркало с грохотом разбилось! Иллюзия рассеялась, обнажив НАСТОЯЩИЕ препятствия! <<<\n");
+            mirror_active = 0; // Иллюзия отключена, видна реальная правая комната!
             int mid_x = width / 2;
             for (int y = 1; y < height - 1; y++) {
                 if (map[y][mid_x] == '|') {
@@ -512,6 +544,7 @@ void action_adventure() {
             free_map(map, height); // Очищаем старую память
 
             current_floor++;
+            mirror_active = 1; // На новом этаже зеркало снова активно
             height = 11 + (rand() % 3) * 2;
             width = 19 + (rand() % 3) * 2;
 
