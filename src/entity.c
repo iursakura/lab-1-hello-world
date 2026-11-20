@@ -14,7 +14,7 @@ static int scale_by_floor(int base_value, int floor) {
 }
 
 /* Создание массива сущностей для этажа */
-struct EntityList* entities_create(int map_height, int map_width, char** cells, int floor) {
+struct EntityList* entities_create(int map_height, int map_width, char** cells, int floor, int bonus_heals) {
     if (cells == NULL || map_height <= 0 || map_width <= 0) {
         return NULL;
     }
@@ -51,6 +51,8 @@ struct EntityList* entities_create(int map_height, int map_width, char** cells, 
     list->count = 0;
     list->total_resources = 0;
     list->destroyed_count = 0;
+
+    int heal_chance = bonus_heals ? (HEAL_CHANCE * HEAL_BONUS_MULTIPLIER) : HEAL_CHANCE;
 
     /* Собираем координаты всех свободных клеток */
     int placed = 0;
@@ -93,7 +95,7 @@ struct EntityList* entities_create(int map_height, int map_width, char** cells, 
                 e->drop_item_id = ITEM_STONE;
                 e->gold_reward = 0;
                 list->total_resources++;
-            } else if (roll < TREE_CHANCE + ROCK_CHANCE + HEAL_CHANCE) {
+            } else if (roll < TREE_CHANCE + ROCK_CHANCE + heal_chance) {
                 /* Целебный куст */
                 e->type = ENT_HEAL;
                 e->symbol = CELL_HEAL;

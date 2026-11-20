@@ -37,7 +37,7 @@ struct EntityList {
 };
 
 /* Жизненный цикл */
-struct EntityList* entities_create(int map_height, int map_width, char** cells, int floor);
+struct EntityList* entities_create(int map_height, int map_width, char** cells, int floor, int bonus_heals);
 void entities_destroy(struct EntityList** list);
 
 /* Поиск */

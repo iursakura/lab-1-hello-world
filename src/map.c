@@ -213,13 +213,24 @@ void map_print(const struct Map* map, int hero_x, int hero_y) {
 /* ==================== Режим приключения ==================== */
 
 static void adventure_print_hud(const struct Player* player, const struct Map* map, const struct GameTime* time) {
+    int percent = (map->entities != NULL) ? entities_destruction_percent(map->entities) : 0;
+    const char* status = (percent > NATURE_WRATH_THRESHOLD) ? " [ГНЕВ ПРИРОДЫ!]" :
+                         (percent < NATURE_PEACE_THRESHOLD) ? " [Гармония]" : "";
+
     printf("\nHP: %d/%d | Выносливость: %d/%d | Золото: %d | Этаж: %d | Время: %02d:00\n",
         player->hp, player->max_hp,
         player->stamina, player->max_stamina,
         player->gold, map->floor, time->hour);
+
+    if (map->entities != NULL && map->entities->total_resources > 0) {
+        printf("Баланс этажа: добыто %d/%d ресурсов (%d%%)%s\n",
+            map->entities->destroyed_count, map->entities->total_resources,
+            percent, status);
+    }
 }
 
 static char adventure_read_command(void) {
+    fflush(stdout);
     char command = 0;
     if (scanf_s(" %c", &command, 1) != 1) {
         clear_input_buffer();

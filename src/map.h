@@ -21,7 +21,7 @@ void map_free_cells(struct Map* map);
 void map_destroy(struct Map** map);
 
 /* Генерация и отрисовка */
-void map_generate_tower(struct Map* map, int* hero_x, int* hero_y);
+void map_generate_tower(struct Map* map, int* hero_x, int* hero_y, int bonus_heals);
 void map_print(const struct Map* map, int hero_x, int hero_y);
 
 /* Режим приключения */
