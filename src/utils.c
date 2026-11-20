@@ -16,10 +16,14 @@ void clear_input_buffer(void) {
 int read_int(const char* prompt, int min_value, int max_value, int* out_value) {
     if (prompt != NULL) {
         printf("%s", prompt);
+        fflush(stdout);
     }
 
     int value = 0;
     if (scanf_s("%d", &value) != 1) {
+        if (feof(stdin)) {
+            exit(0);
+        }
         printf("Ошибка! Введите число.\n");
         clear_input_buffer();
         return 0;
@@ -38,9 +42,13 @@ int read_int(const char* prompt, int min_value, int max_value, int* out_value) {
 int read_word(const char* prompt, char* out, int size) {
     if (prompt != NULL) {
         printf("%s", prompt);
+        fflush(stdout);
     }
 
     if (scanf_s("%31s", out, (unsigned)size) != 1) {
+        if (feof(stdin)) {
+            exit(0);
+        }
         clear_input_buffer();
         return 0;
     }
@@ -184,6 +192,29 @@ void action_write_diary(const struct Player* player, const struct GameTime* time
 
     fclose(f);
     printf("Состояние успешно записано в diary.txt!\n");
+}
+
+/* Автоматическая запись отчёта об экспедиции (ЛР 6) */
+void diary_log_expedition(const struct Player* player, const struct GameTime* time, int floor_reached, const char* outcome) {
+    if (player == NULL || time == NULL) {
+        return;
+    }
+
+    FILE* f = NULL;
+    if (fopen_s(&f, "diary.txt", "a") != 0 || f == NULL) {
+        return;
+    }
+
+    fprintf(f, "=== ОТЧЁТ ОБ ЭКСПЕДИЦИИ В БАШНЮ ===\n");
+    fprintf(f, "Герой: %s (%s)\n", player->name, profession_name(player->profession));
+    fprintf(f, "Время: День %d, %02d:00\n", time->day, time->hour);
+    fprintf(f, "Достигнутый этаж: %d\n", floor_reached);
+    fprintf(f, "Итог: %s\n", outcome != NULL ? outcome : "Завершено");
+    fprintf(f, "Здоровье: %d/%d | Золото: %d\n", player->hp, player->max_hp, player->gold);
+    fprintf(f, "====================================\n\n");
+
+    fclose(f);
+    printf("Отчёт об экспедиции автоматически сохранён в diary.txt\n");
 }
 
 /* ==================== Доска объявлений (Вариант 9 из ЛР 3) ==================== */
