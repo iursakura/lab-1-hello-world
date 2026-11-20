@@ -204,7 +204,7 @@ int main(void) {
                 print_no_player();
                 break;
             }
-            action_adventure(player, &time);
+            action_adventure(player, &time, item_names);
             break;
 
         default:

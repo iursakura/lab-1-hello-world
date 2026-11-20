@@ -25,6 +25,6 @@ void map_generate_tower(struct Map* map, int* hero_x, int* hero_y, int bonus_hea
 void map_print(const struct Map* map, int hero_x, int hero_y);
 
 /* Режим приключения */
-void action_adventure(struct Player* player, struct GameTime* time);
+void action_adventure(struct Player* player, struct GameTime* time, char item_names[MAX_ITEMS][MAX_NAME_LEN]);
 
 #endif /* MAP_H */

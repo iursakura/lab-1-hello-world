@@ -27,7 +27,9 @@ int time_is_night(const struct GameTime* time);
 /* ==================== Файлы и предметы ==================== */
 void load_item_names(char names[MAX_ITEMS][MAX_NAME_LEN]);
 void action_write_diary(const struct Player* player, const struct GameTime* time, char names[MAX_ITEMS][MAX_NAME_LEN]);
-void diary_log_expedition(const struct Player* player, const struct GameTime* time, int floor_reached, const char* outcome);
+void diary_log_expedition(const struct Player* player, const struct GameTime* time,
+                          int floor_reached, int resources_gathered, int monsters_defeated,
+                          const char* outcome);
 void action_notice_board(const struct GameTime* time, const struct Player* player, char names[MAX_ITEMS][MAX_NAME_LEN]);
 
 #endif /* UTILS_H */

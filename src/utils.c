@@ -195,7 +195,9 @@ void action_write_diary(const struct Player* player, const struct GameTime* time
 }
 
 /* Автоматическая запись отчёта об экспедиции (ЛР 6) */
-void diary_log_expedition(const struct Player* player, const struct GameTime* time, int floor_reached, const char* outcome) {
+void diary_log_expedition(const struct Player* player, const struct GameTime* time,
+                          int floor_reached, int resources_gathered, int monsters_defeated,
+                          const char* outcome) {
     if (player == NULL || time == NULL) {
         return;
     }
@@ -209,6 +211,8 @@ void diary_log_expedition(const struct Player* player, const struct GameTime* ti
     fprintf(f, "Герой: %s (%s)\n", player->name, profession_name(player->profession));
     fprintf(f, "Время: День %d, %02d:00\n", time->day, time->hour);
     fprintf(f, "Достигнутый этаж: %d\n", floor_reached);
+    fprintf(f, "Добыто ресурсов: %d\n", resources_gathered);
+    fprintf(f, "Побеждено монстров: %d\n", monsters_defeated);
     fprintf(f, "Итог: %s\n", outcome != NULL ? outcome : "Завершено");
     fprintf(f, "Здоровье: %d/%d | Золото: %d\n", player->hp, player->max_hp, player->gold);
     fprintf(f, "====================================\n\n");

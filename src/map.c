@@ -241,7 +241,8 @@ static char adventure_read_command(void) {
 }
 
 /* Экстренная эвакуация: половина золота уходит спасателям */
-static void adventure_evacuate(struct Map** map, struct Player* player, const struct GameTime* time, const char* reason) {
+static void adventure_evacuate(struct Map** map, struct Player* player, const struct GameTime* time,
+                               int resources_gathered, int monsters_defeated, const char* reason) {
     printf("\n>>> %s <<<\n", reason);
     printf(">>> Герой падает без сил! Спасательная служба доставляет его домой. <<<\n");
 
@@ -252,7 +253,7 @@ static void adventure_evacuate(struct Map** map, struct Player* player, const st
     player->gold -= fee;
     printf("Спасатели забрали половину золота: -%d. Осталось золота: %d\n", fee, player->gold);
 
-    diary_log_expedition(player, time, floor_reached, reason);
+    diary_log_expedition(player, time, floor_reached, resources_gathered, monsters_defeated, reason);
 }
 
 /* Трата выносливости за шаг с учётом пассивных бонусов профессий */
@@ -278,7 +279,7 @@ static void adventure_step_effects(struct Player* player) {
     }
 }
 
-void action_adventure(struct Player* player, struct GameTime* time) {
+void action_adventure(struct Player* player, struct GameTime* time, char item_names[MAX_ITEMS][MAX_NAME_LEN]) {
     if (player == NULL) {
         printf("Сначала создайте персонажа!\n");
         return;
@@ -291,6 +292,9 @@ void action_adventure(struct Player* player, struct GameTime* time) {
         printf("Сейчас 02:00 ночи. Ночью фермер должен спать, а не бродить по башне!\n");
         return;
     }
+
+    int resources_gathered = 0;
+    int monsters_defeated = 0;
 
     int map_height = random_map_side(MAP_MIN_HEIGHT);
     int map_width = random_map_side(MAP_MIN_WIDTH);
@@ -323,7 +327,7 @@ void action_adventure(struct Player* player, struct GameTime* time) {
             if (map->cells[hero_y][hero_x] == CELL_DOWN) {
                 printf("\nВы благополучно спустились по лестнице D и вернулись домой!\n");
                 printf("Заработанное золото осталось при вас: %d\n", player->gold);
-                diary_log_expedition(player, time, map->floor, "Успешное возвращение домой");
+                diary_log_expedition(player, time, map->floor, resources_gathered, monsters_defeated, "Успешное возвращение домой");
                 map_destroy(&map);
                 return;
             }
@@ -378,10 +382,13 @@ void action_adventure(struct Player* player, struct GameTime* time) {
                     e->is_alive = 0;
                     map->cells[new_y][new_x] = CELL_FLOOR;
                     map->entities->destroyed_count++;
+                    resources_gathered++;
 
                     int slot = player_add_item_to_free_slot(player, e->drop_item_id);
                     if (slot >= 0) {
-                        printf(">>> Ресурс успешно добыт и помещён в слот [%d] рюкзака! <<<\n", slot);
+                        const char* iname = (e->drop_item_id >= 0 && e->drop_item_id < MAX_ITEMS) ?
+                                            item_names[e->drop_item_id] : "Ресурс";
+                        printf(">>> Вы разрубили объект и получили: %s (слот [%d])! <<<\n", iname, slot);
                     } else {
                         printf(">>> Рюкзак полон! Добытый ресурс потерян. <<<\n");
                     }
@@ -393,7 +400,7 @@ void action_adventure(struct Player* player, struct GameTime* time) {
                 }
 
                 if (player->stamina <= 0) {
-                    adventure_evacuate(&map, player, time, "Выносливость упала до нуля при добыче ресурсов!");
+                    adventure_evacuate(&map, player, time, resources_gathered, monsters_defeated, "Выносливость упала до нуля при добыче ресурсов!");
                     return;
                 }
             }
@@ -421,6 +428,7 @@ void action_adventure(struct Player* player, struct GameTime* time) {
                     e->is_alive = 0;
                     map->cells[new_y][new_x] = CELL_FLOOR;
                     map->entities->destroyed_count++;
+                    monsters_defeated++;
 
                     player_add_gold(player, e->gold_reward);
                     printf(">>> Враг повержен! Награда: +%d золота (всего: %d) <<<\n",
@@ -429,7 +437,9 @@ void action_adventure(struct Player* player, struct GameTime* time) {
                     if (e->drop_item_id != ITEM_NONE) {
                         int slot = player_add_item_to_free_slot(player, e->drop_item_id);
                         if (slot >= 0) {
-                            printf(">>> Получен трофей в слот [%d]! <<<\n", slot);
+                            const char* iname = (e->drop_item_id >= 0 && e->drop_item_id < MAX_ITEMS) ?
+                                                item_names[e->drop_item_id] : "Трофей";
+                            printf(">>> Получен трофей: %s (слот [%d])! <<<\n", iname, slot);
                         }
                     }
                 } else {
@@ -444,13 +454,13 @@ void action_adventure(struct Player* player, struct GameTime* time) {
 
                     if (player->hp <= 0) {
                         player->hp = 0;
-                        adventure_evacuate(&map, player, time, "Герой пал в бою!");
+                        adventure_evacuate(&map, player, time, resources_gathered, monsters_defeated, "Герой пал в бою!");
                         return;
                     }
                 }
 
                 if (player->stamina <= 0) {
-                    adventure_evacuate(&map, player, time, "Выносливость упала до нуля в бою!");
+                    adventure_evacuate(&map, player, time, resources_gathered, monsters_defeated, "Выносливость упала до нуля в бою!");
                     return;
                 }
             }
@@ -488,7 +498,7 @@ void action_adventure(struct Player* player, struct GameTime* time) {
         adventure_step_effects(player);
 
         if (player->stamina <= 0) {
-            adventure_evacuate(&map, player, time, "Выносливость упала до нуля!");
+            adventure_evacuate(&map, player, time, resources_gathered, monsters_defeated, "Выносливость упала до нуля!");
             return;
         }
 
@@ -527,11 +537,11 @@ void action_adventure(struct Player* player, struct GameTime* time) {
             printf(">>> Награда за этаж: +%d золота (всего: %d) <<<\n", reward, player->gold);
 
             if (time_is_night(time)) {
-                adventure_evacuate(&map, player, time, "Наступило 02:00 ночи — пора спать!");
+                adventure_evacuate(&map, player, time, resources_gathered, monsters_defeated, "Наступило 02:00 ночи — пора спать!");
                 return;
             }
             if (player->stamina <= 0) {
-                adventure_evacuate(&map, player, time, "Выносливость упала до нуля!");
+                adventure_evacuate(&map, player, time, resources_gathered, monsters_defeated, "Выносливость упала до нуля!");
                 return;
             }
 
