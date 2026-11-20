@@ -40,10 +40,11 @@ static void display_menu(const struct Player* player) {
     if (player == NULL) {
         printf("Персонаж: не создан\n");
     } else {
-        printf("Персонаж: %s (%s) | HP %d/%d | Выносливость %d/%d | Золото %d\n",
+        printf("Персонаж: %s (%s) | HP %d/%d | Выносливость %d/%d | АТК %d | ЗАЩ %d | Золото %d\n",
             player->name, profession_name(player->profession),
             player->hp, player->max_hp,
             player->stamina, player->max_stamina,
+            player->attack, player->defense,
             player->gold);
     }
     printf("[1] Создать / пересоздать персонажа\n");

@@ -22,6 +22,8 @@ struct Player {
     int max_hp;
     int stamina;
     int max_stamina;
+    int attack;                  /* Атака (ЛР 6) */
+    int defense;                 /* Защита (ЛР 6) */
     int gold;
     int x;                       /* Координаты на карте приключения */
     int y;
@@ -38,6 +40,8 @@ const char* profession_name(enum Profession profession);
 const char* profession_description(enum Profession profession);
 int profession_start_hp(enum Profession profession);
 int profession_start_stamina(enum Profession profession);
+int profession_start_attack(enum Profession profession);
+int profession_start_defense(enum Profession profession);
 int player_gold_percent(const struct Player* player);
 
 /* Характеристики */

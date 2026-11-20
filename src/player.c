@@ -47,6 +47,26 @@ int profession_start_stamina(enum Profession profession) {
     }
 }
 
+int profession_start_attack(enum Profession profession) {
+    switch (profession) {
+    case PROF_LUMBERJACK: return LUMBERJACK_ATTACK;
+    case PROF_MINER:      return MINER_ATTACK;
+    case PROF_SCOUT:      return SCOUT_ATTACK;
+    case PROF_FARMER:
+    default:              return FARMER_ATTACK;
+    }
+}
+
+int profession_start_defense(enum Profession profession) {
+    switch (profession) {
+    case PROF_LUMBERJACK: return LUMBERJACK_DEFENSE;
+    case PROF_MINER:      return MINER_DEFENSE;
+    case PROF_SCOUT:      return SCOUT_DEFENSE;
+    case PROF_FARMER:
+    default:              return FARMER_DEFENSE;
+    }
+}
+
 /* Множитель золота за этаж в процентах (пассивный бонус профессии) */
 int player_gold_percent(const struct Player* player) {
     if (player == NULL) {
@@ -96,6 +116,8 @@ struct Player* player_create(void) {
     player->hp = player->max_hp;
     player->max_stamina = profession_start_stamina(player->profession);
     player->stamina = player->max_stamina;
+    player->attack = profession_start_attack(player->profession);
+    player->defense = profession_start_defense(player->profession);
     player->gold = START_GOLD;
     player->x = 0;
     player->y = 0;
@@ -111,8 +133,9 @@ struct Player* player_create(void) {
 
     printf("\nПерсонаж создан! Память выделена по адресу %p\n", (void*)player);
     printf("Профессия: %s (%s)\n", profession_name(player->profession), profession_description(player->profession));
-    printf("HP: %d/%d | Выносливость: %d/%d | Золото: %d\n",
-        player->hp, player->max_hp, player->stamina, player->max_stamina, player->gold);
+    printf("HP: %d/%d | Выносливость: %d/%d | Атака: %d | Защита: %d | Золото: %d\n",
+        player->hp, player->max_hp, player->stamina, player->max_stamina,
+        player->attack, player->defense, player->gold);
 
     return player;
 }
@@ -268,6 +291,8 @@ void player_print_card(const struct Player* player, char names[MAX_ITEMS][MAX_NA
     printf("Профессия:    %s (%s)\n", profession_name(player->profession), profession_description(player->profession));
     printf("Здоровье:     %d/%d\n", player->hp, player->max_hp);
     printf("Выносливость: %d/%d\n", player->stamina, player->max_stamina);
+    printf("Атака:        %d\n", player->attack);
+    printf("Защита:       %d\n", player->defense);
     printf("Золото:       %d\n", player->gold);
     printf("Время:        День %d, %02d:00\n", time->day, time->hour);
     printf("---------------------------\n");

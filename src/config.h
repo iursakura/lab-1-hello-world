@@ -71,5 +71,52 @@
 #define CELL_DOWN         'D'
 #define CELL_UP           'U'
 #define CELL_HERO         '@'
+#define CELL_TREE         'T'
+#define CELL_ROCK         'R'
+#define CELL_HEAL         '+'
+#define CELL_MONSTER      'M'
+#define CELL_ENT          'E'
+
+/* ==================== Сущности (ЛР 6) ==================== */
+#define ENTITY_PERCENT        15   /* % площади, заполняемой сущностями */
+#define TREE_CHANCE           35   /* Шанс дерева среди сущностей, % */
+#define ROCK_CHANCE           25   /* Шанс камня, % */
+#define HEAL_CHANCE           15   /* Шанс аптечки, % */
+#define MONSTER_CHANCE        25   /* Шанс монстра, % */
+
+#define BASE_RESOURCE_HP      10   /* Базовая прочность ресурса */
+#define BASE_MONSTER_HP       15   /* Базовое HP монстра */
+#define BASE_MONSTER_ATTACK    4   /* Базовая атака монстра */
+#define BASE_MONSTER_DEFENSE   1   /* Базовая защита монстра */
+#define BASE_MONSTER_GOLD     15   /* Базовое золото за монстра */
+#define FLOOR_SCALE_PERCENT  120   /* Множитель характеристик за этаж, % */
+#define HEAL_HP_RESTORE       20   /* Аптечка: восстановление HP */
+#define HEAL_STAMINA_RESTORE  10   /* Аптечка: восстановление стамины */
+#define ACTION_STAMINA_COST    2   /* Расход стамины за взаимодействие */
+#define MIN_DAMAGE             1   /* Минимальный урон за удар */
+#define MONSTER_DROP_CHANCE   30   /* Шанс трофея с монстра, % */
+#define DEFENSE_DIVISOR        2   /* Делитель защиты в формуле урона */
+
+/* ==================== Гнев Природы (Вариант 5, ЛР 6) ==================== */
+#define NATURE_WRATH_THRESHOLD  50   /* >50% ресурсов — Энты */
+#define NATURE_PEACE_THRESHOLD  10   /* <10% ресурсов — x2 аптечек */
+#define ENT_HP_MULTIPLIER        3   /* Энт: HP = монстр × 3 */
+#define ENT_ATTACK_MULTIPLIER    2   /* Энт: атака = монстр × 2 */
+#define ENT_DEFENSE_MULTIPLIER   3   /* Энт: защита = монстр × 3 */
+#define ENT_GOLD_MULTIPLIER      2   /* Энт: золото = монстр × 2 */
+#define ENT_SPAWN_COUNT          3   /* Сколько Энтов спавнится */
+#define HEAL_BONUS_MULTIPLIER    2   /* Множитель аптечек за бережливость */
+
+/* ==================== Игрок: боевые параметры (ЛР 6) ==================== */
+#define DEFAULT_ATTACK         5
+#define DEFAULT_DEFENSE        2
+#define FARMER_ATTACK          DEFAULT_ATTACK
+#define FARMER_DEFENSE         DEFAULT_DEFENSE
+#define LUMBERJACK_ATTACK      7
+#define LUMBERJACK_DEFENSE     DEFAULT_DEFENSE
+#define MINER_ATTACK           6
+#define MINER_DEFENSE          4
+#define SCOUT_ATTACK           4
+#define SCOUT_DEFENSE          1
 
 #endif /* CONFIG_H */

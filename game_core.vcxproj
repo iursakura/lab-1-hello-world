@@ -143,6 +143,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\entity.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\map.c" />
     <ClCompile Include="src\player.c" />
@@ -150,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\config.h" />
+    <ClInclude Include="src\entity.h" />
     <ClInclude Include="src\map.h" />
     <ClInclude Include="src\player.h" />
     <ClInclude Include="src\utils.h" />
