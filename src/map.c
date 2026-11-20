@@ -100,7 +100,7 @@ static void carve_path(struct Map* map, int x1, int y1, int x2, int y2) {
     }
 }
 
-void map_generate_tower(struct Map* map, int* hero_x, int* hero_y) {
+void map_generate_tower(struct Map* map, int* hero_x, int* hero_y, int bonus_heals) {
     int height = map->height;
     int width = map->width;
     int mid_x = width / 2;
@@ -172,7 +172,7 @@ void map_generate_tower(struct Map* map, int* hero_x, int* hero_y) {
     if (map->entities != NULL) {
         entities_destroy(&map->entities);
     }
-    map->entities = entities_create(height, width, map->cells, map->floor);
+    map->entities = entities_create(height, width, map->cells, map->floor, bonus_heals);
 }
 
 /* ==================== Отрисовка ==================== */
@@ -230,15 +230,18 @@ static char adventure_read_command(void) {
 }
 
 /* Экстренная эвакуация: половина золота уходит спасателям */
-static void adventure_evacuate(struct Map** map, struct Player* player, const char* reason) {
+static void adventure_evacuate(struct Map** map, struct Player* player, const struct GameTime* time, const char* reason) {
     printf("\n>>> %s <<<\n", reason);
     printf(">>> Герой падает без сил! Спасательная служба доставляет его домой. <<<\n");
 
+    int floor_reached = (*map != NULL) ? (*map)->floor : 1;
     map_destroy(map);
 
     int fee = player->gold / RESCUE_FEE_DIVISOR;
     player->gold -= fee;
     printf("Спасатели забрали половину золота: -%d. Осталось золота: %d\n", fee, player->gold);
+
+    diary_log_expedition(player, time, floor_reached, reason);
 }
 
 /* Трата выносливости за шаг с учётом пассивных бонусов профессий */
@@ -288,7 +291,7 @@ void action_adventure(struct Player* player, struct GameTime* time) {
 
     int hero_x = 0;
     int hero_y = 0;
-    map_generate_tower(map, &hero_x, &hero_y);
+    map_generate_tower(map, &hero_x, &hero_y, 0);
 
     printf("\nВы входите в загадочную Башню...\n");
 
@@ -309,6 +312,7 @@ void action_adventure(struct Player* player, struct GameTime* time) {
             if (map->cells[hero_y][hero_x] == CELL_DOWN) {
                 printf("\nВы благополучно спустились по лестнице D и вернулись домой!\n");
                 printf("Заработанное золото осталось при вас: %d\n", player->gold);
+                diary_log_expedition(player, time, map->floor, "Успешное возвращение домой");
                 map_destroy(&map);
                 return;
             }
@@ -349,6 +353,121 @@ void action_adventure(struct Player* player, struct GameTime* time) {
             continue;
         }
 
+        /* Добыча ресурсов (T, R) — методичка ЛР 6 */
+        if (target_cell == CELL_TREE || target_cell == CELL_ROCK) {
+            struct Entity* e = entity_at(map->entities, new_x, new_y);
+            if (e != NULL && e->is_alive) {
+                player_spend_stamina(player, ACTION_STAMINA_COST);
+                e->hp -= player->attack;
+                const char* rname = (target_cell == CELL_TREE) ? "дереву" : "камню";
+                printf("\n>>> Удар по %s! Нанесено %d урона. Прочность: %d/%d <<<\n",
+                    rname, player->attack, (e->hp > 0 ? e->hp : 0), e->max_hp);
+
+                if (e->hp <= 0) {
+                    e->is_alive = 0;
+                    map->cells[new_y][new_x] = CELL_FLOOR;
+                    map->entities->destroyed_count++;
+
+                    int slot = player_add_item_to_free_slot(player, e->drop_item_id);
+                    if (slot >= 0) {
+                        printf(">>> Ресурс успешно добыт и помещён в слот [%d] рюкзака! <<<\n", slot);
+                    } else {
+                        printf(">>> Рюкзак полон! Добытый ресурс потерян. <<<\n");
+                    }
+
+                    /* Вариант 5: проверка пробуждения Гнева Природы */
+                    if (entities_destruction_percent(map->entities) > NATURE_WRATH_THRESHOLD) {
+                        entities_spawn_ents(map->entities, map->height, map->width, map->cells, map->floor);
+                    }
+                }
+
+                if (player->stamina <= 0) {
+                    adventure_evacuate(&map, player, time, "Выносливость упала до нуля при добыче ресурсов!");
+                    return;
+                }
+            }
+            continue;
+        }
+
+        /* Бой с монстром (M) или Энтом (E) — ЛР 6 */
+        if (target_cell == CELL_MONSTER || target_cell == CELL_ENT) {
+            struct Entity* e = entity_at(map->entities, new_x, new_y);
+            if (e != NULL && e->is_alive) {
+                player_spend_stamina(player, ACTION_STAMINA_COST);
+
+                /* Урон героя по формуле: Атака - Защита/2 (минимум 1) */
+                int hero_damage = player->attack - (e->defense / DEFENSE_DIVISOR);
+                if (hero_damage < MIN_DAMAGE) {
+                    hero_damage = MIN_DAMAGE;
+                }
+                e->hp -= hero_damage;
+
+                const char* enemy_name = (target_cell == CELL_ENT) ? "Энту" : "монстру";
+                printf("\n>>> Вы атаковали %s! Нанесено %d урона. HP врага: %d/%d <<<\n",
+                    enemy_name, hero_damage, (e->hp > 0 ? e->hp : 0), e->max_hp);
+
+                if (e->hp <= 0) {
+                    e->is_alive = 0;
+                    map->cells[new_y][new_x] = CELL_FLOOR;
+                    map->entities->destroyed_count++;
+
+                    player_add_gold(player, e->gold_reward);
+                    printf(">>> Враг повержен! Награда: +%d золота (всего: %d) <<<\n",
+                        e->gold_reward, player->gold);
+
+                    if (e->drop_item_id != ITEM_NONE) {
+                        int slot = player_add_item_to_free_slot(player, e->drop_item_id);
+                        if (slot >= 0) {
+                            printf(">>> Получен трофей в слот [%d]! <<<\n", slot);
+                        }
+                    }
+                } else {
+                    /* Ответный удар врага: Атака - Защита/2 (минимум 1) */
+                    int monster_damage = e->attack - (player->defense / DEFENSE_DIVISOR);
+                    if (monster_damage < MIN_DAMAGE) {
+                        monster_damage = MIN_DAMAGE;
+                    }
+                    player->hp -= monster_damage;
+                    printf(">>> Враг контратакует! Получено %d урона. Ваше HP: %d/%d <<<\n",
+                        monster_damage, (player->hp > 0 ? player->hp : 0), player->max_hp);
+
+                    if (player->hp <= 0) {
+                        player->hp = 0;
+                        adventure_evacuate(&map, player, time, "Герой пал в бою!");
+                        return;
+                    }
+                }
+
+                if (player->stamina <= 0) {
+                    adventure_evacuate(&map, player, time, "Выносливость упала до нуля в бою!");
+                    return;
+                }
+            }
+            continue;
+        }
+
+        /* Сбор целебного куста (+) — методичка ЛР 6 */
+        if (target_cell == CELL_HEAL) {
+            struct Entity* e = entity_at(map->entities, new_x, new_y);
+            if (e != NULL) {
+                e->is_alive = 0;
+            }
+            map->cells[new_y][new_x] = CELL_FLOOR;
+
+            player->hp += HEAL_HP_RESTORE;
+            if (player->hp > player->max_hp) {
+                player->hp = player->max_hp;
+            }
+            player->stamina += HEAL_STAMINA_RESTORE;
+            if (player->stamina > player->max_stamina) {
+                player->stamina = player->max_stamina;
+            }
+
+            printf("\n>>> Вы съели целебные ягоды с куста! +%d HP, +%d выносливости! <<<\n",
+                HEAL_HP_RESTORE, HEAL_STAMINA_RESTORE);
+            continue;
+        }
+
         /* Успешный шаг */
         hero_x = new_x;
         hero_y = new_y;
@@ -358,7 +477,7 @@ void action_adventure(struct Player* player, struct GameTime* time) {
         adventure_step_effects(player);
 
         if (player->stamina <= 0) {
-            adventure_evacuate(&map, player, "Выносливость упала до нуля!");
+            adventure_evacuate(&map, player, time, "Выносливость упала до нуля!");
             return;
         }
 
@@ -382,6 +501,12 @@ void action_adventure(struct Player* player, struct GameTime* time) {
             player_spend_stamina(player, FLOOR_STAMINA_COST);
             time_add_hours(time, 1);
 
+            /* Вариант 5: проверка бережливости (<10% ресурсов уничтожено) */
+            int was_peaceful = (entities_destruction_percent(map->entities) < NATURE_PEACE_THRESHOLD);
+            if (was_peaceful) {
+                printf("\n>>> ПРИРОДА БЛАГОДАРНА: за бережное отношение на новом этаже кустов x2! <<<\n");
+            }
+
             map->floor++;
 
             int reward = GOLD_PER_FLOOR * map->floor * player_gold_percent(player) / PERCENT_BASE;
@@ -391,11 +516,11 @@ void action_adventure(struct Player* player, struct GameTime* time) {
             printf(">>> Награда за этаж: +%d золота (всего: %d) <<<\n", reward, player->gold);
 
             if (time_is_night(time)) {
-                adventure_evacuate(&map, player, "Наступило 02:00 ночи — пора спать!");
+                adventure_evacuate(&map, player, time, "Наступило 02:00 ночи — пора спать!");
                 return;
             }
             if (player->stamina <= 0) {
-                adventure_evacuate(&map, player, "Выносливость упала до нуля!");
+                adventure_evacuate(&map, player, time, "Выносливость упала до нуля!");
                 return;
             }
 
@@ -411,7 +536,7 @@ void action_adventure(struct Player* player, struct GameTime* time) {
             }
 
             map->floor = next_floor;
-            map_generate_tower(map, &hero_x, &hero_y);
+            map_generate_tower(map, &hero_x, &hero_y, was_peaceful);
             player->x = hero_x;
             player->y = hero_y;
         }

@@ -51,6 +51,7 @@ void player_add_gold(struct Player* player, int amount);
 void player_restore_full(struct Player* player);
 
 /* Инвентарь */
+int player_add_item_to_free_slot(struct Player* player, int item_id);
 void player_show_inventory(const struct Player* player, char names[MAX_ITEMS][MAX_NAME_LEN]);
 void player_put_item(struct Player* player);
 void player_drop_item(struct Player* player);

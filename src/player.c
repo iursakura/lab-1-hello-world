@@ -186,6 +186,19 @@ void player_restore_full(struct Player* player) {
 
 /* ==================== Инвентарь ==================== */
 
+int player_add_item_to_free_slot(struct Player* player, int item_id) {
+    if (player == NULL || item_id <= ITEM_NONE) {
+        return -1;
+    }
+    for (int i = 0; i < INVENTORY_SIZE; i++) {
+        if (player->inventory[i] == ITEM_NONE) {
+            player->inventory[i] = item_id;
+            return i;
+        }
+    }
+    return -1;
+}
+
 void player_show_inventory(const struct Player* player, char names[MAX_ITEMS][MAX_NAME_LEN]) {
     printf("--- Инвентарь (%s) ---\n", player->name);
     for (int i = 0; i < INVENTORY_SIZE; i++) {
