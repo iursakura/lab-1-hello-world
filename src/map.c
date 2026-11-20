@@ -38,6 +38,7 @@ struct Map* map_create(int height, int width) {
     map->width = width;
     map->floor = 1;
     map->mirror_active = 1;
+    map->entities = NULL;
 
     return map;
 }
@@ -61,6 +62,10 @@ void map_free_cells(struct Map* map) {
 void map_destroy(struct Map** map) {
     if (map == NULL || *map == NULL) {
         return;
+    }
+
+    if ((*map)->entities != NULL) {
+        entities_destroy(&((*map)->entities));
     }
 
     printf("Память структуры по адресу %p освобождена\n", (void*)(*map));
@@ -162,6 +167,12 @@ void map_generate_tower(struct Map* map, int* hero_x, int* hero_y) {
           или лестницу вверх, прорубаем к ним коридор. */
     carve_path(map, start_x, start_y, sw_x, sw_y);
     carve_path(map, start_x, start_y, u_x, u_y);
+
+    /* 9. Генерация сущностей (ЛР 6): деревья, камни, кусты, монстры */
+    if (map->entities != NULL) {
+        entities_destroy(&map->entities);
+    }
+    map->entities = entities_create(height, width, map->cells, map->floor);
 }
 
 /* ==================== Отрисовка ==================== */
@@ -195,8 +206,8 @@ void map_print(const struct Map* map, int hero_x, int hero_y) {
     printf("----------------------------------------\n");
     printf("Управление: [W] - Вверх | [S] - Вниз | [A] - Влево | [D] - Вправо\n");
     printf("            [Q] - Вернуться домой (работает только на клетке D)\n");
-    printf("Обозначения: @ - Герой, D - Лестница вниз, U - Лестница вверх\n");
-    printf("             | - Зеркало, S - Переключатель, # - Стена, . - Пол\n");
+    printf("Обозначения: @ - Герой, D - Вниз, U - Вверх, S - Рычаг, | - Зеркало\n");
+    printf("             T - Дерево, R - Камень, + - Куст, M - Монстр, E - Энт\n");
 }
 
 /* ==================== Режим приключения ==================== */

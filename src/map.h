@@ -3,14 +3,16 @@
 
 #include "config.h"
 #include "player.h"
+#include "entity.h"
 
 /* Структура карты приключения */
 struct Map {
-    char** cells;      /* Двумерный динамический массив клеток */
+    char** cells;                 /* Двумерный динамический массив клеток */
     int height;
     int width;
-    int floor;         /* Счётчик пройденных этажей */
-    int mirror_active; /* 1 - зеркальная иллюзия активна, 0 - разбита */
+    int floor;                    /* Счётчик пройденных этажей */
+    int mirror_active;            /* 1 - зеркальная иллюзия активна, 0 - разбита */
+    struct EntityList* entities;  /* Массив сущностей этажа (ЛР 6) */
 };
 
 /* Жизненный цикл карты */
