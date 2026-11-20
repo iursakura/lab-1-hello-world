@@ -29,21 +29,21 @@ const char* profession_description(enum Profession profession) {
 
 int profession_start_hp(enum Profession profession) {
     switch (profession) {
-    case PROF_LUMBERJACK: return 120;
-    case PROF_MINER:      return 130;
-    case PROF_SCOUT:      return 90;
+    case PROF_LUMBERJACK: return LUMBERJACK_HP;
+    case PROF_MINER:      return MINER_HP;
+    case PROF_SCOUT:      return SCOUT_HP;
     case PROF_FARMER:
-    default:              return DEFAULT_MAX_HP;
+    default:              return FARMER_HP;
     }
 }
 
 int profession_start_stamina(enum Profession profession) {
     switch (profession) {
-    case PROF_LUMBERJACK: return 45;
-    case PROF_MINER:      return 40;
-    case PROF_SCOUT:      return 70;
+    case PROF_LUMBERJACK: return LUMBERJACK_STAMINA;
+    case PROF_MINER:      return MINER_STAMINA;
+    case PROF_SCOUT:      return SCOUT_STAMINA;
     case PROF_FARMER:
-    default:              return DEFAULT_MAX_STAMINA;
+    default:              return FARMER_STAMINA;
     }
 }
 
@@ -69,17 +69,13 @@ static enum Profession choose_profession(void) {
     printf("[4] Разведчик  — %s\n", profession_description(PROF_SCOUT));
 
     int choice = 0;
-    if (!read_int("Ваш выбор: ", 1, 4, &choice)) {
+    if (!read_int("Ваш выбор: ", PROF_FARMER, PROF_SCOUT, &choice)) {
         printf("Выбрана профессия по умолчанию: Фермер.\n");
         return PROF_FARMER;
     }
 
-    switch (choice) {
-    case 2:  return PROF_LUMBERJACK;
-    case 3:  return PROF_MINER;
-    case 4:  return PROF_SCOUT;
-    default: return PROF_FARMER;
-    }
+    /* Номера пунктов меню совпадают со значениями enum Profession */
+    return (enum Profession)choice;
 }
 
 struct Player* player_create(void) {
@@ -105,7 +101,10 @@ struct Player* player_create(void) {
     player->y = 0;
 
     /* Стартовый набор предметов, чтобы можно было сразу играть */
-    int start_items[INVENTORY_SIZE] = { 1, 2, 3, 0, 4, 5, 0, 7, 1, 9 };
+    int start_items[INVENTORY_SIZE] = {
+        ITEM_WOOD, ITEM_STONE, ITEM_SEEDS, ITEM_NONE, ITEM_WHEAT,
+        ITEM_PEAR, ITEM_NONE, ITEM_WATER, ITEM_WOOD, ITEM_GOLD
+    };
     for (int i = 0; i < INVENTORY_SIZE; i++) {
         player->inventory[i] = start_items[i];
     }

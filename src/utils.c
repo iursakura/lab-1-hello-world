@@ -128,16 +128,16 @@ void load_item_names(char names[MAX_ITEMS][MAX_NAME_LEN]) {
     for (int i = 0; i < MAX_ITEMS; i++) {
         strcpy_s(names[i], MAX_NAME_LEN, "Неизвестно");
     }
-    strcpy_s(names[0], MAX_NAME_LEN, "Пусто");
-    strcpy_s(names[1], MAX_NAME_LEN, "Дерево");
-    strcpy_s(names[2], MAX_NAME_LEN, "Камень");
-    strcpy_s(names[3], MAX_NAME_LEN, "Семена");
-    strcpy_s(names[4], MAX_NAME_LEN, "Пшеница");
-    strcpy_s(names[5], MAX_NAME_LEN, "Груша");
-    strcpy_s(names[6], MAX_NAME_LEN, "Лопата");
-    strcpy_s(names[7], MAX_NAME_LEN, "Вода");
-    strcpy_s(names[8], MAX_NAME_LEN, "Удобрение");
-    strcpy_s(names[9], MAX_NAME_LEN, "Золото");
+    strcpy_s(names[ITEM_NONE], MAX_NAME_LEN, "Пусто");
+    strcpy_s(names[ITEM_WOOD], MAX_NAME_LEN, "Дерево");
+    strcpy_s(names[ITEM_STONE], MAX_NAME_LEN, "Камень");
+    strcpy_s(names[ITEM_SEEDS], MAX_NAME_LEN, "Семена");
+    strcpy_s(names[ITEM_WHEAT], MAX_NAME_LEN, "Пшеница");
+    strcpy_s(names[ITEM_PEAR], MAX_NAME_LEN, "Яблоко");
+    strcpy_s(names[ITEM_SHOVEL], MAX_NAME_LEN, "Лопата");
+    strcpy_s(names[ITEM_WATER], MAX_NAME_LEN, "Вода");
+    strcpy_s(names[ITEM_FERTILIZER], MAX_NAME_LEN, "Удобрение");
+    strcpy_s(names[ITEM_GOLD], MAX_NAME_LEN, "Золото");
 
     FILE* f;
     if (fopen_s(&f, "items.txt", "r") != 0 || f == NULL) {

@@ -14,6 +14,32 @@
 #define DEFAULT_MAX_HP     100
 #define DEFAULT_MAX_STAMINA 50
 
+/* ==================== Профессии (Вариант 1) ==================== */
+#define FARMER_HP          DEFAULT_MAX_HP
+#define FARMER_STAMINA     DEFAULT_MAX_STAMINA
+#define LUMBERJACK_HP      120
+#define LUMBERJACK_STAMINA  45
+#define MINER_HP           130
+#define MINER_STAMINA       40
+#define SCOUT_HP            90
+#define SCOUT_STAMINA       70
+
+/* ==================== Коды предметов (порядок как в items.txt) ==================== */
+#define ITEM_NONE         0
+#define ITEM_WOOD         1
+#define ITEM_STONE        2
+#define ITEM_SEEDS        3
+#define ITEM_WHEAT        4
+#define ITEM_PEAR         5
+#define ITEM_SHOVEL       6
+#define ITEM_WATER        7
+#define ITEM_FERTILIZER   8
+#define ITEM_GOLD         9
+
+/* ==================== Общие расчёты ==================== */
+#define PERCENT_BASE      100   /* База для процентов */
+#define RESCUE_FEE_DIVISOR  2   /* Спасатели забирают 1/2 золота */
+
 /* ==================== Время ==================== */
 #define HOURS_IN_DAY       24
 #define SLEEP_HOUR         8   /* Во сколько фермер просыпается */
