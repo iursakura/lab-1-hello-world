@@ -75,6 +75,26 @@ static int random_map_side(int min_side) {
     return min_side + (rand() % MAP_SIDE_VARIANTS) * MAP_SIDE_STEP;
 }
 
+/* Прорубает Г-образный коридор между двумя клетками: стены превращаются в пол.
+   Нужно, чтобы случайные препятствия никогда не отрезали S и U от старта. */
+static void carve_path(struct Map* map, int x1, int y1, int x2, int y2) {
+    int x = x1;
+    int y = y1;
+
+    while (x != x2) {
+        x += (x2 > x) ? 1 : -1;
+        if (map->cells[y][x] == CELL_WALL) {
+            map->cells[y][x] = CELL_FLOOR;
+        }
+    }
+    while (y != y2) {
+        y += (y2 > y) ? 1 : -1;
+        if (map->cells[y][x] == CELL_WALL) {
+            map->cells[y][x] = CELL_FLOOR;
+        }
+    }
+}
+
 void map_generate_tower(struct Map* map, int* hero_x, int* hero_y) {
     int height = map->height;
     int width = map->width;
@@ -99,7 +119,7 @@ void map_generate_tower(struct Map* map, int* hero_x, int* hero_y) {
     /* 3. Препятствия в левой половине */
     for (int y = 1; y < height - 1; y++) {
         for (int x = 1; x < mid_x; x++) {
-            if (rand() % 100 < WALL_CHANCE_LEFT) {
+            if (rand() % PERCENT_BASE < WALL_CHANCE_LEFT) {
                 map->cells[y][x] = CELL_WALL;
             }
         }
@@ -108,7 +128,7 @@ void map_generate_tower(struct Map* map, int* hero_x, int* hero_y) {
     /* 4. Реальные (другие!) препятствия в правой половине, скрытые за зеркалом */
     for (int y = 1; y < height - 1; y++) {
         for (int x = mid_x + 1; x < width - 1; x++) {
-            if (rand() % 100 < WALL_CHANCE_RIGHT) {
+            if (rand() % PERCENT_BASE < WALL_CHANCE_RIGHT) {
                 map->cells[y][x] = CELL_WALL;
             }
         }
@@ -137,6 +157,11 @@ void map_generate_tower(struct Map* map, int* hero_x, int* hero_y) {
         u_x = (mid_x + 1) + rand() % (width - mid_x - 2);
     } while (map->cells[u_y][u_x] == CELL_WALL);
     map->cells[u_y][u_x] = CELL_UP;
+
+    /* 8. Гарантия проходимости: если случайные стены отрезали переключатель
+          или лестницу вверх, прорубаем к ним коридор. */
+    carve_path(map, start_x, start_y, sw_x, sw_y);
+    carve_path(map, start_x, start_y, u_x, u_y);
 }
 
 /* ==================== Отрисовка ==================== */
@@ -200,7 +225,7 @@ static void adventure_evacuate(struct Map** map, struct Player* player, const ch
 
     map_destroy(map);
 
-    int fee = player->gold / 2;
+    int fee = player->gold / RESCUE_FEE_DIVISOR;
     player->gold -= fee;
     printf("Спасатели забрали половину золота: -%d. Осталось золота: %d\n", fee, player->gold);
 }
@@ -209,7 +234,7 @@ static void adventure_evacuate(struct Map** map, struct Player* player, const ch
 static void adventure_step_effects(struct Player* player) {
     int free_step = 0;
 
-    if (player->profession == PROF_SCOUT && (rand() % 100) < SCOUT_FREE_STEP_CHANCE) {
+    if (player->profession == PROF_SCOUT && (rand() % PERCENT_BASE) < SCOUT_FREE_STEP_CHANCE) {
         free_step = 1;
         printf("(Разведчик: лёгкий шаг — выносливость не потрачена)\n");
     }
@@ -242,7 +267,10 @@ void action_adventure(struct Player* player, struct GameTime* time) {
         return;
     }
 
-    struct Map* map = map_create(random_map_side(MAP_MIN_HEIGHT), random_map_side(MAP_MIN_WIDTH));
+    int map_height = random_map_side(MAP_MIN_HEIGHT);
+    int map_width = random_map_side(MAP_MIN_WIDTH);
+
+    struct Map* map = map_create(map_height, map_width);
     if (map == NULL) {
         return;
     }
@@ -259,6 +287,12 @@ void action_adventure(struct Player* player, struct GameTime* time) {
 
         printf("Ваш ход (W-вверх, S-вниз, A-влево, D-вправо, Q-домой): ");
         char command = adventure_read_command();
+
+        if (command == 0) {
+            printf("\nВвод завершён — герой покидает башню.\n");
+            map_destroy(&map);
+            return;
+        }
 
         if (command == 'q' || command == 'Q') {
             if (map->cells[hero_y][hero_x] == CELL_DOWN) {
@@ -339,7 +373,7 @@ void action_adventure(struct Player* player, struct GameTime* time) {
 
             map->floor++;
 
-            int reward = GOLD_PER_FLOOR * map->floor * player_gold_percent(player) / 100;
+            int reward = GOLD_PER_FLOOR * map->floor * player_gold_percent(player) / PERCENT_BASE;
             player_add_gold(player, reward);
 
             printf("\n>>> Вы поднялись на этаж %d! <<<\n", map->floor);
@@ -354,32 +388,18 @@ void action_adventure(struct Player* player, struct GameTime* time) {
                 return;
             }
 
-            /* Пересоздаём карту нового этажа, старую память освобождаем */
-            map_free_cells(map);
-            map->height = random_map_side(MAP_MIN_HEIGHT);
-            map->width = random_map_side(MAP_MIN_WIDTH);
-            map->mirror_active = 1;
+            /* Пересоздаём карту нового этажа: старая память освобождается
+               с обязательным отладочным сообщением внутри map_destroy */
+            int next_floor = map->floor;
 
-            map->cells = (char**)malloc(map->height * sizeof(char*));
-            if (map->cells == NULL) {
-                printf("Ошибка выделения памяти под новый этаж!\n");
-                map_destroy(&map);
+            map_destroy(&map);
+
+            map = map_create(random_map_side(MAP_MIN_HEIGHT), random_map_side(MAP_MIN_WIDTH));
+            if (map == NULL) {
                 return;
             }
-            for (int i = 0; i < map->height; i++) {
-                map->cells[i] = (char*)malloc(map->width * sizeof(char));
-                if (map->cells[i] == NULL) {
-                    printf("Ошибка выделения памяти под новый этаж!\n");
-                    for (int j = 0; j < i; j++) {
-                        free(map->cells[j]);
-                    }
-                    free(map->cells);
-                    map->cells = NULL;
-                    map_destroy(&map);
-                    return;
-                }
-            }
 
+            map->floor = next_floor;
             map_generate_tower(map, &hero_x, &hero_y);
             player->x = hero_x;
             player->y = hero_y;
